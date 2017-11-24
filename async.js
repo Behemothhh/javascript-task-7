@@ -48,7 +48,7 @@ AsyncRun.prototype._formParallel = function () {
 AsyncRun.prototype._formRequest = function (number) {
     return new Promise (resolve => {
         setTimeout(() => {
-            resolve(new Error('Response timeout'), number);
+            resolve(new Error('Promise timeout'), number);
         }, this._timeout);
         this._jobs.shift()().then(
             result => {
