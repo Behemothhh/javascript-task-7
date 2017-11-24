@@ -45,27 +45,20 @@ AsyncRun.prototype._formParallel = function () {
     return request;
 }
 
-AsyncRun.prototype._formRequest = function (number, resolve) {
-    if (this._jobs.length === 0) {
-        return resolve('Succes');
-    }
-
-    const timeoutId = setTimeout(() => {
-        this._addResponse(number, new Error('Respone timeout'));
-        this._nextRequest(resolve);
-    }, this._timeout);
-    this._jobs.shift()().then(
-        result => {
-            clearInterval(timeoutId);
-            this._addResponse(number, result);
-            this._nextRequest(resolve);
-        },
-        error => {
-            clearInterval(timeoutId);
-            this._addResponse(number, error);
-            this._nextRequest(resolve);
-        }
-    );
+AsyncRun.prototype._formRequest = function (number) {
+    return new Promise (resolve => {
+        setTimeout(() => {
+            resolve(new Error('Response timeout'), number);
+        }, this._timeout);
+        this._jobs.shift()().then(
+            result => {
+                resolve(result, number);
+            },
+            error => {
+                resolve(error, number);
+            }
+        );
+    });
 }
 
 AsyncRun.prototype._startChain = function () {
@@ -75,11 +68,20 @@ AsyncRun.prototype._startChain = function () {
 }
 
 AsyncRun.prototype._nextRequest = function (resolve) {
+    if (this._jobs.length === 0) {
+        return resolve('Succes');
+    }
     this._requestCounter++;
-    this._formRequest(this._requestCounter, resolve)
+    this._formRequest(this._requestCounter)
+        .then((result, number) => {
+            this._addResponse(result, number);
+        })
+        .then(() => {
+            this._nextRequest(resolve)
+        });
 }
 
-AsyncRun.prototype._addResponse = function (number, data) {
+AsyncRun.prototype._addResponse = function (data, number) {
     this._answer.push({
         number,
         data
