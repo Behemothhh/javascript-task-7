@@ -7,6 +7,7 @@ exports.runParallel = runParallel;
  * @param {Array} jobs – функции, которые возвращают промисы
  * @param {Number} parallelNum - число одновременно исполняющихся промисов
  * @param {Number} timeout - таймаут работы промиса
+ * @returns {Promise}
  */
 function runParallel(jobs, parallelNum, timeout = 1000) {
     // асинхронная магия
@@ -44,18 +45,15 @@ AsyncRun.prototype._formParallel = function () {
     return request;
 }
 
-AsyncRun.prototype._formRequest = function (num, resolve) {
-    const number = num;
-
+AsyncRun.prototype._formRequest = function (number, resolve) {
     if (this._jobs.length === 0) {
-        resolve('Succes');
+        return resolve('Succes');
     }
 
-    const timeoutId = setTimeout((resolve) => {
+    const timeoutId = setTimeout(() => {
         this._addResponse(number, new Error('Respone timeout'));
         this._nextRequest(resolve);
     }, this._timeout);
-
     this._jobs.shift()().then(
         result => {
             clearInterval(timeoutId);

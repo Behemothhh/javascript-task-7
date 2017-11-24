@@ -43,7 +43,7 @@ async
     .then(console.log);
 
 /*
-    дайце мне вады
+    дайце мне вады sdasddsa
     дайте мені води
     give me water
     donnez-moi de l'eau
