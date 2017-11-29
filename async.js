@@ -13,9 +13,7 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
     // асинхронная магия
     const asyncRun = new AsyncRun(jobs, parallelNum, timeout);
 
-    return new Promise(resolve => {
-        asyncRun.start(resolve);
-    })
+    return asyncRun.start();
 }
 
 function AsyncRun(jobs, parallelNum, timeout) {
@@ -26,62 +24,39 @@ function AsyncRun(jobs, parallelNum, timeout) {
     this._requestCounter = 0;
 }
 
-AsyncRun.prototype.start = function (resolve) {
-    Promise.all(this._formParallel())
-        .then(() => {
-            resolve(this._answer
-                .sort((a, b) => a.number - b.number)
-                .map(response => response.data)
-            )
-        });
+AsyncRun.prototype.start = function () {
+    return Promise.all(this._formParallel())
+        .then(() => this._answer);
 }
 
 AsyncRun.prototype._formParallel = function () {
-    let request = [];
+    const requests = [];
     for (let i = 0; i < this._parallelNum; i++) {
-        request.push(this._startChain());
+        requests.push(this._nextRequest());
     }
 
-    return request;
-}
+    return requests;
+};
 
-AsyncRun.prototype._formRequest = function () {
+AsyncRun.prototype._nextRequest = function () {
+    if (this._jobs.length === this._requestCounter) {
+        return Promise.resolve();
+    }
+    const index = this._requestCounter++;
+
+    return this._formRequest(index)
+        .then((result) => {
+            this._answer[index] = result;
+
+            return this._nextRequest();
+        });
+};
+
+AsyncRun.prototype._formRequest = function (index) {
     return new Promise (resolve => {
         setTimeout(() => {
             resolve(new Error('Promise timeout'));
         }, this._timeout);
-        this._jobs.shift()().then(
-            result => {
-                resolve(result);
-            },
-            error => {
-                resolve(error);
-            }
-        );
+        this._jobs[index]().then(resolve, resolve);
     });
-}
-
-AsyncRun.prototype._startChain = function () {
-    return new Promise(resolve => {
-        this._nextRequest(resolve);
-    });
-}
-
-AsyncRun.prototype._nextRequest = function (resolve) {
-    if (this._jobs.length === 0) {
-        return resolve('Succes');
-    }
-    let number = this._requestCounter++;
-    this._formRequest()
-        .then((result) => {
-            this._addResponse(result, number);
-            this._nextRequest(resolve);
-        })
-}
-
-AsyncRun.prototype._addResponse = function (data, number) {
-    this._answer.push({
-        number,
-        data
-    });
-}
+};
