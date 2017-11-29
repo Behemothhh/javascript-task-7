@@ -27,7 +27,7 @@ function AsyncRun(jobs, parallelNum, timeout) {
 AsyncRun.prototype.start = function () {
     return Promise.all(this._formParallel())
         .then(() => this._answer);
-}
+};
 
 AsyncRun.prototype._formParallel = function () {
     const requests = [];
